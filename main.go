@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -104,7 +105,7 @@ func respond(con net.Conn, req Request) {
 		res := Response{headers: make(map[string]string)}
 
 		path := "./public_html" + req.route
-		// Check if path has more /../ than routes
+		// check that path doesn't escape into our files!
 
 		bs, err := os.ReadFile(path)
 		if err != nil {
@@ -120,8 +121,19 @@ func respond(con net.Conn, req Request) {
 		res.body = bs
 		res.headers["Content-Length"] = strconv.Itoa(len(bs))
 
-		res.headers["Content-Type"] = "image/vnd.microsoft.icon"
+		ext := filepath.Ext(path)
+
 		// Match MIME type
+		switch ext {
+		case ".ico":
+			res.headers["Content-Type"] = "image/vnd.microsoft.icon"
+		case ".html":
+			res.headers["Content-Type"] = "text/html"
+		case ".css":
+			res.headers["Content-Type"] = "text/css"
+		case ".js":
+			res.headers["Content-Type"] = "text/javascript"
+		}
 
 		res.Write(con)
 
