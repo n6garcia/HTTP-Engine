@@ -87,17 +87,11 @@ func request(con net.Conn) Request {
 		i++
 	}
 
-	/*
-		for key, val := range req.headers {
-			fmt.Println(key, " ", val)
-		}*/
-
 	return req
 }
 
 func respond(con net.Conn, req Request) {
 
-	// if route is special "index.html"
 	if req.route == "/" {
 		body := `<b>Hello!</b>`
 		fmt.Fprint(con, "HTTP/1.1 200 OK\r\n")
@@ -109,17 +103,25 @@ func respond(con net.Conn, req Request) {
 
 		res := Response{headers: make(map[string]string)}
 
+		path := "./public_html" + req.route
+		// Check if path has more /../ than routes
+
+		bs, err := os.ReadFile(path)
+		if err != nil {
+			res.code = 404
+			res.desc = "Bad Request"
+			res.Write(con)
+			return
+		}
+
 		res.code = 200
 		res.desc = "OK"
 
-		bs, err := os.ReadFile("./public_html/favicon.ico")
-		if err != nil {
-			panic(err)
-		}
-
 		res.body = bs
 		res.headers["Content-Length"] = strconv.Itoa(len(bs))
+
 		res.headers["Content-Type"] = "image/vnd.microsoft.icon"
+		// Match MIME type
 
 		res.Write(con)
 
