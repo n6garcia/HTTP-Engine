@@ -29,7 +29,7 @@ type Response struct {
 
 func main() {
 
-	li, err := net.Listen("tcp", ":8080")
+	li, err := net.Listen("tcp", ":8090")
 	if err != nil {
 		log.Println(err)
 		return
@@ -93,19 +93,35 @@ func request(con net.Conn) Request {
 
 func respond(con net.Conn, req Request) {
 
+	res := Response{headers: make(map[string]string)}
+
 	if req.route == "/" {
-		body := `<b>Hello!</b>`
-		fmt.Fprint(con, "HTTP/1.1 200 OK\r\n")
-		fmt.Fprintf(con, "Content-Length: %d\r\n", len(body))
-		fmt.Fprint(con, "Content-Type: text/html\r\n")
-		fmt.Fprint(con, "\r\n")
-		fmt.Fprint(con, body)
+
+		path := "./public_html/index.html"
+
+		bs, err := os.ReadFile(path)
+		if err != nil {
+			res.code = 404
+			res.desc = "Bad Request"
+			res.Write(con)
+			return
+		}
+
+		res.code = 200
+		res.desc = "OK"
+
+		res.body = bs
+		res.headers["Content-Length"] = strconv.Itoa(len(bs))
+
+		res.headers["Content-Type"] = "text/html"
+
+		res.Write(con)
+
 	} else {
 
-		res := Response{headers: make(map[string]string)}
-
 		path := "./public_html" + req.route
-		// check that path doesn't escape into our files!
+
+		// TODO :: check that path doesn't escape into our files!
 
 		bs, err := os.ReadFile(path)
 		if err != nil {
